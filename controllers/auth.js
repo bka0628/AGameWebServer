@@ -5,7 +5,6 @@ exports.login = async (req, res) => {
   const { id, password, captcha } = req.body;
 
   if (!id || !password) {
-    console.log('fasd');
     return res.status(400).json({ message: 'Invalid input' });
   }
 

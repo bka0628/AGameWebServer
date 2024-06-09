@@ -7,8 +7,8 @@ exports.getCaptcha = async (req, res) => {
     noise: 3,
     color: true,
     background: '#ffffff',
-    width: 280,
-    height: 50,
+    width: 260,
+    height: 38,
     fontSize: 50,
   });
 
