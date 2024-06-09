@@ -17,11 +17,11 @@ exports.getUserInquiries = async (req, res) => {
     SELECT
       inquiries.id,
       inquiries.type,
-      CONCAT(SUBSTR(inquiries.content, 1, 20), '...') AS content,
+      inquiries.title,
       inquiries.date,
     CASE
-        WHEN inquiryAnswers.content IS NULL THEN '접수'
-        ELSE '완료'
+        WHEN inquiryAnswers.content IS NULL THEN '접수 완료'
+        ELSE '답변 완료'
     END AS status
     FROM
       inquiries
@@ -34,13 +34,13 @@ exports.getUserInquiries = async (req, res) => {
     LIMIT ${itemsPerPage} OFFSET ${offset};`,
     [userId]
   ).then((result) => {
-
     const inquiries = result[0].map((item) => {
       return {
         id: item.id,
         type: item.type,
-        content: item.content,
+        title: item.title,
         date: formatDate(item.date),
+        status: item.status,
       };
     });
 
@@ -49,10 +49,10 @@ exports.getUserInquiries = async (req, res) => {
 };
 
 exports.createInquiries = async (req, res) => {
-  const { inquiryType, inquiryContent } = req.body;
+  const { inquiryType, inquiryTitle, inquiryContent } = req.body;
   const { userId } = req;
 
-  if (!inquiryType || !inquiryContent) {
+  if (!inquiryType || !inquiryTitle || !inquiryContent) {
     return res.status(400).json({ message: 'Invalid input' });
   }
 
@@ -61,9 +61,9 @@ exports.createInquiries = async (req, res) => {
   }
 
   db.execute(
-    `INSERT INTO inquiries(type, user_id, content)
-  VALUES (?, ?, ?)`,
-    [inquiryType, userId, inquiryContent]
+    `INSERT INTO inquiries(type, user_id, title, content)
+  VALUES (?, ?, ?, ?)`,
+    [inquiryType, userId, inquiryTitle, inquiryContent]
   )
     .then(() => {
       return res.status(201).json({ message: 'Inquiry created' });
@@ -82,17 +82,20 @@ exports.getTotalInquiriesCount = async (req, res) => {
   }
 
   const totalInquiriesCount = await db
-    .execute(`
+    .execute(
+      `
       SELECT 
         COUNT(*) AS count 
       FROM 
         inquiries
       WHERE 
         user_id = ${userId} 
-    `)
+    `
+    )
     .then((result) => {
       return result[0][0].count;
-    }).catch((err) => {
+    })
+    .catch((err) => {
       console.error(err);
     });
 
@@ -107,7 +110,7 @@ exports.getInquiriesById = async (req, res) => {
     .execute(
       `
       SELECT 
-        id, type, content, date
+        id, type, title, content, date
       FROM 
         news 
       WHERE id = ${id} and user_id = ${userId}
